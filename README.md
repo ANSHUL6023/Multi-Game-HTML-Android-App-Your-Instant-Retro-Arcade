@@ -29,4 +29,4 @@ Technical Highlights:
 For developers and users who value stability and proven functionality—download the HTML5 Game Bundle now!
 
 
-<img width="300" height="300" alt="Screenshot_20251106_113444" src="https://github.com/user-attachments/assets/99e5525c-e664-4ec5-af86-496505ecc9db" />
+<img width="300" height="600" alt="Screenshot_20251106_113444" src="https://github.com/user-attachments/assets/99e5525c-e664-4ec5-af86-496505ecc9db" />

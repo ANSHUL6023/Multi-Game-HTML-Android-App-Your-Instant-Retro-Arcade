@@ -30,3 +30,15 @@ For developers and users who value stability and proven functionality—download
 
 
 <img width="300" height="600" alt="Screenshot_20251106_113444" src="https://github.com/user-attachments/assets/99e5525c-e664-4ec5-af86-496505ecc9db" />
+<img width="300" height="600" alt="Screenshot_20251106_113454" src="https://github.com/user-attachments/assets/73d8deff-9ad1-47d3-8b7a-de90195d671c" />
+<img width="300" height="600" alt="Screenshot_20251106_113514" src="https://github.com/user-attachments/assets/731a73fc-ec13-4533-bcfd-1d2289f4c52e" />
+<img width="300" height="600" alt="Screenshot_20251106_113533" src="https://github.com/user-attachments/assets/9cc82ad9-3ba4-4257-894f-da33b5f16628" />
+<img width="300" height="600" alt="Screenshot_20251106_113539" src="https://github.com/user-attachments/assets/767b9934-2d75-4e80-80e3-bd46982e7a94" />
+<img width="300" height="600" alt="Screenshot_20251106_113546" src="https://github.com/user-attachments/assets/0d42446d-9f2f-45d5-845b-d91086dd15d8" />
+<img width="300" height="600" alt="Screenshot_20251106_113603" src="https://github.com/user-attachments/assets/4e838f4f-2ae4-48e5-ab9e-d9ec13f46e0e" />
+
+
+
+
+
+

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2048 Game</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        /* Prevent pull-to-refresh and other touch behaviors on the body */
+        overscroll-behavior-y: contain; 
+      }
+
+      .game-container {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 30px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        max-width: 90vw; /* Ensure the container fits on smaller screens */
+      }
+
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .score-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        gap: 20px;
+      }
+
+      .score-box {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 15px 25px;
+        border-radius: 10px;
+        backdrop-filter: blur(5px);
+      }
+
+      .score-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 5px;
+      }
+
+      .score-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .grid-container {
+        position: relative;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 15px;
+        padding: 15px;
+        margin: 20px 0;
+        /* Important for touch events */
+        touch-action: none; 
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-gap: 10px;
+        width: 100%;
+        height: 100%;
+      }
+
+      .cell {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem;
+        font-weight: bold;
+        transition: all 0.15s ease-in-out;
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 1;
+        width: 100%;
+        height: auto;
+      }
+      
+      /* Adjust font size on smaller screens */
+      @media (max-width: 480px) {
+        .cell {
+          font-size: 1.5rem;
+        }
+      }
+
+      .cell.empty {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .cell:not(.empty) {
+        animation: appear 0.2s ease-in-out;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .cell.merged {
+        animation: merge 0.3s ease-in-out;
+      }
+
+      @keyframes appear {
+        0% {
+          transform: scale(0);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes merge {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /* Tile colors */
+      .tile-2 {
+        background: #eee4da;
+        color: #776e65;
+      }
+      .tile-4 {
+        background: #ede0c8;
+        color: #776e65;
+      }
+      .tile-8 {
+        background: #f2b179;
+        color: #f9f6f2;
+      }
+      .tile-16 {
+        background: #f59563;
+        color: #f9f6f2;
+      }
+      .tile-32 {
+        background: #f67c5f;
+        color: #f9f6f2;
+      }
+      .tile-64 {
+        background: #f65e3b;
+        color: #f9f6f2;
+      }
+      .tile-128 {
+        background: #edcf72;
+        color: #f9f6f2;
+        font-size: 1.8rem;
+      }
+      .tile-256 {
+        background: #edcc61;
+        color: #f9f6f2;
+        font-size: 1.8rem;
+      }
+      .tile-512 {
+        background: #edc850;
+        color: #f9f6f2;
+        font-size: 1.8rem;
+      }
+      .tile-1024 {
+        background: #edc53f;
+        color: #f9f6f2;
+        font-size: 1.5rem;
+      }
+      .tile-2048 {
+        background: #edc22e;
+        color: #f9f6f2;
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px #edc22e;
+      }
+      
+      @media (max-width: 480px) {
+        .tile-128, .tile-256, .tile-512 {
+          font-size: 1.3rem;
+        }
+        .tile-1024, .tile-2048 {
+          font-size: 1.1rem;
+        }
+      }
+
+      .controls {
+        margin-top: 20px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .controls p {
+        margin: 5px 0;
+      }
+
+      .new-game-btn {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        border: none;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .new-game-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .game-over {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        border-radius: 15px;
+        flex-direction: column;
+        color: white;
+      }
+
+      .game-over.show {
+        display: flex;
+      }
+
+      .game-over h2 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+      }
+
+      .game-over p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+      }
+      /* Back to Menu Button Style */
+      .back-button {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        text-decoration: none;
+        background-color: #7f8c8d;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        z-index: 100;
+      }
+      .back-button:hover {
+        background-color: #95a5a6;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="../../index.html" class="back-button">← Back to Menu</a>
+    <div class="game-container">
+      <h1>2048</h1>
+
+      <div class="score-container">
+        <div class="score-box">
+          <div class="score-label">SCORE</div>
+          <div class="score-value" id="score">0</div>
+        </div>
+        <div class="score-box">
+          <div class="score-label">BEST</div>
+          <div class="score-value" id="best">0</div>
+        </div>
+      </div>
+
+      <div class="grid-container" id="grid-container"> <div class="grid" id="grid">
+          </div>
+        <div class="game-over" id="gameOver">
+          <h2 id="gameOverTitle">Game Over!</h2>
+          <p id="gameOverMessage">Try again!</p>
+          <button class="new-game-btn" onclick="game.restart()">
+            Try Again
+          </button>
+        </div>
+      </div>
+
+      <button class="new-game-btn" onclick="game.restart()">New Game</button>
+
+      <div class="controls">
+        <p><strong>HOW TO PLAY:</strong> Use arrow keys or swipe to move tiles</p>
+        <p>When two tiles with the same number touch, they merge into one!</p>
+      </div>
+    </div>
+
+    <script>
+      class Game2048 {
+        constructor() {
+          this.grid = Array(4)
+            .fill()
+            .map(() => Array(4).fill(0));
+          this.score = 0;
+          this.best = parseInt(localStorage.getItem("2048-best")) || 0;
+          this.moved = false;
+          this.won = false;
+
+          // --- NEW: Properties for tracking touch input ---
+          this.touchStartX = 0;
+          this.touchStartY = 0;
+          this.touchEndX = 0;
+          this.touchEndY = 0;
+
+          this.init();
+          this.updateDisplay();
+          this.addRandomTile();
+          this.addRandomTile();
+          this.updateDisplay();
+        }
+
+        init() {
+          const gridElement = document.getElementById("grid");
+          gridElement.innerHTML = "";
+
+          for (let i = 0; i < 16; i++) {
+            const cell = document.createElement("div");
+            cell.className = "cell empty";
+            cell.id = `cell-${i}`;
+            gridElement.appendChild(cell);
+          }
+
+          document.addEventListener("keydown", (e) => this.handleKeyPress(e));
+          document.getElementById("best").textContent = this.best;
+
+          // --- NEW: Add touch event listeners to the grid container ---
+          const gridContainer = document.getElementById("grid-container");
+          gridContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+          gridContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+          gridContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        }
+
+        // --- NEW: Handle the start of a touch gesture ---
+        handleTouchStart(e) {
+            // e.touches[0] is the first finger that touches the screen
+            this.touchStartX = e.touches[0].clientX;
+            this.touchStartY = e.touches[0].clientY;
+        }
+
+        // --- NEW: Prevent the page from scrolling while swiping on the game ---
+        handleTouchMove(e) {
+            // This is important to prevent the browser's default behavior,
+            // like scrolling the page up and down.
+            e.preventDefault();
+        }
+
+        // --- NEW: Handle the end of a touch gesture and determine the swipe direction ---
+        handleTouchEnd(e) {
+            // e.changedTouches[0] is the finger that was lifted
+            this.touchEndX = e.changedTouches[0].clientX;
+            this.touchEndY = e.changedTouches[0].clientY;
+
+            this.handleSwipe();
+        }
+
+        // --- NEW: Calculate swipe and trigger move ---
+        handleSwipe() {
+            const diffX = this.touchEndX - this.touchStartX;
+            const diffY = this.touchEndY - this.touchStartY;
+            const threshold = 50; // Minimum distance in pixels to be considered a swipe
+
+            this.moved = false;
+
+            // Check if it was a horizontal or vertical swipe
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Horizontal swipe
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX > 0) {
+                        this.moveRight();
+                    } else {
+                        this.moveLeft();
+                    }
+                }
+            } else {
+                // Vertical swipe
+                if (Math.abs(diffY) > threshold) {
+                    if (diffY > 0) {
+                        this.moveDown();
+                    } else {
+                        this.moveUp();
+                    }
+                }
+            }
+            
+            // This logic is the same for both key presses and swipes
+            this.postMoveLogic();
+        }
+
+        handleKeyPress(e) {
+          if (
+            ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
+          ) {
+            e.preventDefault();
+            this.moved = false;
+
+            switch (e.key) {
+              case "ArrowLeft":
+                this.moveLeft();
+                break;
+              case "ArrowRight":
+                this.moveRight();
+                break;
+              case "ArrowUp":
+                this.moveUp();
+                break;
+              case "ArrowDown":
+                this.moveDown();
+                break;
+            }
+            
+            // --- MODIFIED: Use the new post-move function ---
+            this.postMoveLogic();
+          }
+        }
+
+        // --- NEW: Refactored logic that runs after a move attempt ---
+        postMoveLogic() {
+            if (this.moved) {
+                this.addRandomTile();
+                this.updateDisplay();
+
+                if (this.isGameOver()) {
+                    this.showGameOver();
+                }
+            }
+        }
+
+        moveLeft() {
+          for (let row = 0; row < 4; row++) {
+            let newRow = this.grid[row].filter((val) => val !== 0);
+            for (let i = 0; i < newRow.length - 1; i++) {
+              if (newRow[i] === newRow[i + 1]) {
+                newRow[i] *= 2;
+                this.score += newRow[i];
+                newRow[i + 1] = 0;
+                if (newRow[i] === 2048 && !this.won) {
+                  this.won = true;
+                  setTimeout(() => this.showWin(), 300);
+                }
+              }
+            }
+            newRow = newRow.filter((val) => val !== 0);
+            while (newRow.length < 4) {
+              newRow.push(0);
+            }
+
+            if (JSON.stringify(this.grid[row]) !== JSON.stringify(newRow)) {
+              this.moved = true;
+            }
+            this.grid[row] = newRow;
+          }
+        }
+
+        moveRight() {
+          for (let row = 0; row < 4; row++) {
+            this.grid[row] = this.grid[row].reverse();
+          }
+          this.moveLeft();
+          for (let row = 0; row < 4; row++) {
+            this.grid[row] = this.grid[row].reverse();
+          }
+        }
+
+        moveUp() {
+          this.transpose();
+          this.moveLeft();
+          this.transpose();
+        }
+
+        moveDown() {
+          this.transpose();
+          this.moveRight();
+          this.transpose();
+        }
+
+        transpose() {
+          const newGrid = Array(4)
+            .fill()
+            .map(() => Array(4).fill(0));
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              newGrid[col][row] = this.grid[row][col];
+            }
+          }
+          this.grid = newGrid;
+        }
+
+        addRandomTile() {
+          const emptyCells = [];
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              if (this.grid[row][col] === 0) {
+                emptyCells.push({ row, col });
+              }
+            }
+          }
+
+          if (emptyCells.length > 0) {
+            const randomCell =
+              emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            this.grid[randomCell.row][randomCell.col] =
+              Math.random() < 0.9 ? 2 : 4;
+          }
+        }
+
+        updateDisplay() {
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              const cellIndex = row * 4 + col;
+              const cell = document.getElementById(`cell-${cellIndex}`);
+              const value = this.grid[row][col];
+
+              cell.textContent = value || "";
+              cell.className = value ? `cell tile-${value}` : "cell empty";
+            }
+          }
+
+          document.getElementById("score").textContent = this.score;
+
+          if (this.score > this.best) {
+            this.best = this.score;
+            localStorage.setItem("2048-best", this.best);
+            document.getElementById("best").textContent = this.best;
+          }
+        }
+
+        isGameOver() {
+          // Check for empty cells
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              if (this.grid[row][col] === 0) {
+                return false;
+              }
+            }
+          }
+
+          // Check for possible merges
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              const current = this.grid[row][col];
+              if (
+                (col < 3 && current === this.grid[row][col + 1]) ||
+                (row < 3 && current === this.grid[row + 1][col])
+              ) {
+                return false;
+              }
+            }
+          }
+          return true;
+        }
+
+        showGameOver() {
+          const gameOver = document.getElementById("gameOver");
+          document.getElementById("gameOverTitle").textContent = "Game Over!";
+          document.getElementById(
+            "gameOverMessage"
+          ).textContent = `Final Score: ${this.score}`;
+          gameOver.classList.add("show");
+        }
+
+        showWin() {
+          const gameOver = document.getElementById("gameOver");
+          document.getElementById("gameOverTitle").textContent = "You Win!";
+          document.getElementById("gameOverMessage").textContent =
+            "You reached 2048! Continue playing?";
+          gameOver.classList.add("show");
+        }
+
+        restart() {
+          this.grid = Array(4)
+            .fill()
+            .map(() => Array(4).fill(0));
+          this.score = 0;
+          this.moved = false;
+          this.won = false;
+
+          document.getElementById("gameOver").classList.remove("show");
+
+          this.updateDisplay();
+          this.addRandomTile();
+          this.addRandomTile();
+          this.updateDisplay();
+        }
+      }
+
+      // Start the game
+      const game = new Game2048();
+    </script>
+  </body>
+</html>

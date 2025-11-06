@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ninja Fruit Cutter</title>
+    <style>
+        /* Add this to the bottom of the style.css for the game */
+.back-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    text-decoration: none;
+    background-color: #7f8c8d;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 100; /* Ensures it's on top of other elements */
+}
+
+.back-button:hover {
+    background-color: #95a5a6;
+}
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path fill="%23ffffff" stroke="%23000" stroke-width="1.5" d="M16 2L2 16l14 14 14-14z"/><rect x="15" y="1" width="2" height="30" fill="%23ff0000"/></svg>'), auto;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        #score {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        
+        #combo {
+            color: gold;
+            font-size: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+        
+        #startButton {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(to right, #ff5e62, #ff9966);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #startButton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+        
+        #restartButton {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(to right, #ff5e62, #ff9966);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #restartButton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .title {
+            font-size: 72px;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    
+    <canvas id="gameCanvas"></canvas>
+    <a href="../../index.html" class="back-button">← Back to Menu</a>
+
+    <div id="ui">
+        <div id="score">0</div>
+        <div id="combo"></div>
+    </div>
+    
+    <div id="startScreen">
+        <h1 class="title">NINJA FRUIT CUTTER</h1>
+        <button id="startButton">START GAME</button>
+    </div>
+    
+    <div id="gameOverScreen">
+        <h1 class="title">GAME OVER</h1>
+        <div id="finalScore" style="font-size: 36px; margin-bottom: 20px;">Score: 0</div>
+        <div style="font-size: 24px; margin-bottom: 20px;">You missed a fruit!</div>
+        <button id="restartButton">PLAY AGAIN</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const comboElement = document.getElementById('combo');
+        const startButton = document.getElementById('startButton');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const restartButton = document.getElementById('restartButton');
+        const finalScoreElement = document.getElementById('finalScore');
+        
+        let score = 0;
+        let combo = 0;
+        let lastComboTime = 0;
+        let comboTimeout = 1000; // 1 second to maintain combo
+        let gameRunning = false;
+        let fruits = [];
+        let splashes = [];
+        let particles = [];
+        let bladePath = [];
+        let mouseX = 0;
+        let mouseY = 0;
+        let fruitSpawnRate = 1000; // ms between fruit spawns
+        let lastSpawnTime = 0;
+        let missedFruits = 0;
+        const maxMissedFruits = 1;
+        
+        // Fruit types with properties
+        const fruitTypes = [
+            { color: '#ff5252', radius: 30, score: 10 }, // red apple
+            { color: '#4CAF50', radius: 35, score: 15 }, // green apple
+            { color: '#FFEB3B', radius: 40, score: 20 }, // banana
+            { color: '#FF9800', radius: 45, score: 25 }, // orange
+            { color: '#E91E63', radius: 25, score: 30 }, // strawberry
+            { color: '#9C27B0', radius: 50, score: 50 }  // watermelon
+        ];
+        
+        // Bonus fruit
+        const bonusFruit = { color: '#00BCD4', radius: 20, score: 100 };
+        
+        // Initialize event listeners
+        function init() {
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+            
+            // Mouse/touch controls
+            canvas.addEventListener('mousemove', handleMove);
+            canvas.addEventListener('touchmove', handleTouch, { passive: false });
+            canvas.addEventListener('mousedown', startBlade);
+            canvas.addEventListener('mouseup', endBlade);
+            canvas.addEventListener('touchstart', startBlade, { passive: false });
+            canvas.addEventListener('touchend', endBlade);
+            
+            // Initial canvas resize
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        // Game start
+        function startGame() {
+            score = 0;
+            combo = 0;
+            missedFruits = 0;
+            fruits = [];
+            splashes = [];
+            particles = [];
+            bladePath = [];
+            fruitSpawnRate = 1000;
+            lastSpawnTime = 0;
+            scoreElement.textContent = '0';
+            comboElement.textContent = '';
+            comboElement.style.opacity = '0';
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'none';
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Spawn fruits
+            if (timestamp - lastSpawnTime > fruitSpawnRate && gameRunning) {
+                if (Math.random() < 0.02) { // 2% chance for bonus fruit
+                    spawnFruit(true);
+                } else {
+                    spawnFruit(false);
+                }
+                lastSpawnTime = timestamp;
+                
+                // Gradually increase difficulty
+                if (score > 0 && score % 500 === 0 && fruitSpawnRate > 300) {
+                    fruitSpawnRate -= 50;
+                }
+            }
+            
+            // Update and draw splashes
+            updateSplashes();
+            
+            // Update and draw fruits
+            updateFruits(timestamp);
+            
+            // Update and draw particles
+            updateParticles();
+            
+            // Draw blade path
+            drawBlade();
+            
+            // Check game over condition
+            if (missedFruits >= maxMissedFruits) {
+                gameOver();
+                return;
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function spawnFruit(isBonus) {
+            const fruitType = isBonus ? bonusFruit : fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+            const x = Math.random() * (canvas.width - fruitType.radius * 2) + fruitType.radius;
+            const y = canvas.height + fruitType.radius;
+            
+            // Random upward angle
+            const angle = (Math.random() * Math.PI / 3) - Math.PI / 6; // -30 to 30 degrees
+            
+            // Random speed
+            const speed = 8 + Math.random() * 4;
+            
+            fruits.push({
+                x: x,
+                y: y,
+                radius: fruitType.radius,
+                color: fruitType.color,
+                velocityX: Math.sin(angle) * speed,
+                velocityY: -Math.cos(angle) * speed,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                score: fruitType.score,
+                isBonus: isBonus,
+                isSliced: false
+            });
+        }
+        
+        function updateFruits(timestamp) {
+            for (let i = fruits.length - 1; i >= 0; i--) {
+                const fruit = fruits[i];
+                
+                // Update position
+                fruit.x += fruit.velocityX;
+                fruit.y += fruit.velocityY;
+                
+                // Apply gravity
+                fruit.velocityY += 0.15;
+                
+                // Update rotation
+                fruit.rotation += fruit.rotationSpeed;
+                
+                // Check if fruit is off-screen
+                if (fruit.y > canvas.height + fruit.radius) {
+                    fruits.splice(i, 1);
+                    if (!fruit.isSliced) { // Only count missed if not sliced
+                        missedFruits++;
+                        if (missedFruits >= maxMissedFruits) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                    continue;
+                }
+                
+                // Check if fruit is sliced by blade
+                if (bladePath.length > 1 && !fruit.isSliced) {
+                    for (let j = 0; j < bladePath.length - 1; j++) {
+                        if (lineCircleIntersect(
+                            bladePath[j].x, bladePath[j].y,
+                            bladePath[j+1].x, bladePath[j+1].y,
+                            fruit.x, fruit.y, fruit.radius
+                        )) {
+                            sliceFruit(i);
+                            break;
+                        }
+                    }
+                }
+                
+                // Draw fruit
+                drawFruit(fruit);
+            }
+        }
+        
+        function drawFruit(fruit) {
+            ctx.save();
+            ctx.translate(fruit.x, fruit.y);
+            ctx.rotate(fruit.rotation);
+            
+            // Main fruit body
+            ctx.beginPath();
+            ctx.arc(0, 0, fruit.radius, 0, Math.PI * 2);
+            ctx.fillStyle = fruit.color;
+            ctx.fill();
+            
+            // Details based on fruit type
+            if (fruit.isBonus) {
+                // Star pattern for bonus fruit
+                ctx.fillStyle = 'gold';
+                drawStar(0, 0, fruit.radius * 0.6, fruit.radius * 0.3, 5);
+            } else if (fruit.color === '#ff5252' || fruit.color === '#4CAF50') {
+                // Apple stem
+                ctx.fillStyle = '#5D4037';
+                ctx.fillRect(-3, -fruit.radius - 5, 6, 10);
+                
+                // Apple leaf
+                ctx.fillStyle = '#7CB342';
+                ctx.beginPath();
+                ctx.ellipse(5, -fruit.radius - 10, 8, 4, Math.PI/4, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (fruit.color === '#FFEB3B') {
+                // Banana ends
+                ctx.fillStyle = '#795548';
+                ctx.beginPath();
+                ctx.arc(-fruit.radius * 0.7, 0, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI/2*3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI/spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            
+            for(let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function sliceFruit(index) {
+            const fruit = fruits[index];
+            fruit.isSliced = true;
+            
+            // Add to score
+            const points = fruit.score * (1 + combo * 0.2);
+            score += Math.floor(points);
+            scoreElement.textContent = score;
+            
+            // Increment combo
+            if (Date.now() - lastComboTime < comboTimeout) {
+                combo++;
+                comboElement.textContent = `${combo}x COMBO!`;
+                comboElement.style.opacity = '1';
+            } else {
+                combo = 1;
+                comboElement.textContent = 'COMBO!';
+                comboElement.style.opacity = '1';
+            }
+            lastComboTime = Date.now();
+            
+            // Hide combo text after timeout
+            setTimeout(() => {
+                comboElement.style.opacity = '0';
+            }, comboTimeout);
+            
+            // Create juice splash
+            splashes.push({
+                x: fruit.x,
+                y: fruit.y,
+                color: fruit.color,
+                life: 1.0,
+                radius: fruit.radius * 2
+            });
+            
+            // Create particles
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: fruit.x,
+                    y: fruit.y,
+                    radius: Math.random() * 5 + 2,
+                    color: fruit.color,
+                    velocityX: (Math.random() - 0.5) * 10,
+                    velocityY: (Math.random() - 0.5) * 10,
+                    life: 1.0,
+                    decay: Math.random() * 0.05 + 0.02
+                });
+            }
+            
+            // Remove the fruit
+            fruits.splice(index, 1);
+        }
+        
+        function updateSplashes() {
+            for (let i = splashes.length - 1; i >= 0; i--) {
+                const splash = splashes[i];
+                splash.life -= 0.02;
+                
+                if (splash.life <= 0) {
+                    splashes.splice(i, 1);
+                    continue;
+                }
+                
+                ctx.globalAlpha = splash.life;
+                ctx.fillStyle = splash.color;
+                ctx.beginPath();
+                ctx.arc(splash.x, splash.y, splash.radius * (1 - splash.life), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.velocityX;
+                p.y += p.velocityY;
+                p.velocityY += 0.1; // gravity
+                p.life -= p.decay;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+        
+        function handleMove(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            if (bladePath.length > 0) {
+                bladePath.push({ x: mouseX, y: mouseY });
+                if (bladePath.length > 10) {
+                    bladePath.shift();
+                }
+            }
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX;
+                mouseY = e.touches[0].clientY;
+                if (bladePath.length > 0) {
+                    bladePath.push({ x: mouseX, y: mouseY });
+                    if (bladePath.length > 10) {
+                        bladePath.shift();
+                    }
+                }
+            }
+        }
+        
+        function startBlade(e) {
+            if (!gameRunning) return;
+            
+            const x = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            const y = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+            
+            bladePath = [{ x, y }];
+            
+            // Prevent default for touch events to avoid page scrolling
+            if (e.type !== 'mousedown') {
+                e.preventDefault();
+            }
+        }
+        
+        function endBlade() {
+            bladePath = [];
+        }
+        
+        function drawBlade() {
+            if (bladePath.length < 2) return;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(bladePath[0].x, bladePath[0].y);
+            
+            for (let i = 1; i < bladePath.length; i++) {
+                ctx.lineTo(bladePath[i].x, bladePath[i].y);
+            }
+            
+            ctx.stroke();
+        }
+        
+        function lineCircleIntersect(x1, y1, x2, y2, cx, cy, radius) {
+            const ac = [cx - x1, cy - y1];
+            const ab = [x2 - x1, y2 - y1];
+            const ab2 = dot(ab, ab);
+            const acab = dot(ac, ab);
+            let t = acab / ab2;
+            
+            t = Math.max(0, Math.min(1, t));
+            
+            const h = [
+                (ab[0] * t + x1) - cx,
+                (ab[1] * t + y1) - cy
+            ];
+            
+            return dot(h, h) <= radius * radius;
+        }
+        
+        function dot(v1, v2) {
+            return v1[0] * v2[0] + v1[1] * v2[1];
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = `Score: ${score}`;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Initialize the game
+        init();
+    </script>
+</body>
+</html>

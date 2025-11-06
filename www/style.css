@@ -1,0 +1,79 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #b4c6d7; /* A dark blue background */
+    color: #ecf0f1;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0px;
+}
+
+.menu-container {
+    width: 90%;
+    max-width: 600px;
+}
+
+h1 {
+    font-size: 3em;
+    margin-bottom: 30px;
+    color: #ffffff;
+}
+
+.game-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-card {
+    background-color: #34495e;
+    padding: 20px;
+    border-radius: 10px;
+    text-decoration: none; /* Removes the underline from links */
+    color: #ecf0f1;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.game-card:hover {
+    background-color: #4c6a8a;
+    transform: translateY(-5px); /* Lifts the card up slightly on hover */
+}
+
+.game-card h2 {
+    margin-top: 0;
+    color: #ffffff;
+}
+
+.game-card p {
+    margin-bottom: 0;
+    color: #bdc3c7; /* A lighter gray for the description */
+}
+
+.app-logo {
+    width: 180px; 
+    margin: 0 auto 20px auto; 
+}
+
+.app-logo img {
+    max-width: 100%; 
+    height: auto; 
+    display: block; 
+}
+
+@media (max-width: 600px) {
+    .app-logo {
+        width: 120px; 
+    }
+
+    h1 {
+        font-size: 2.5em;
+    }
+    
+    h2 {
+        font-size: 1em;
+        margin-bottom: 30px;
+    }
+}
